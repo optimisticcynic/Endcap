@@ -100,22 +100,19 @@ HCALDigis::HCALDigis(const edm::ParameterSet& iConfig)
 {
     edm::Service<TFileService> fs;
     TFileDirectory passed = fs->mkdir("pass");
-    TFileDirectory failed = fs->mkdir("fail");
-    TFileDirectory notef = fs->mkdir("nefail");
+    
+    
     TFileDirectory notep = fs->mkdir("nepass");
     PhAvgDigi = passed.make<TH1F>("avgDigi", "avgDigi", 10, -0.5, 9.5);
     PhAvgadc = passed.make<TH1F>("avgAdc", "avgAdc", 100, -0.5, 99.5);
-    FhAvgDigi = failed.make<TH1F>("avgDigi", "avgDigi", 10, -0.5, 9.5);
-    FhAvgadc = failed.make<TH1F>("avgAdc", "avgAdc", 100, -0.5, 99.5);
     PnehAvgDigi = notep.make<TH1F>("avgDigi", "avgDigi", 10, -0.5, 9.5);
     PnehAvgadc = notep.make<TH1F>("avgAdc", "avgAdc", 100, -0.5, 99.5);
-    FnehAvgDigi = notef.make<TH1F>("avgDigi", "avgDigi", 10, -0.5, 9.5);
-    FnehAvgadc = notef.make<TH1F>("avgAdc", "avgAdc", 100, -0.5, 99.5);
     char ht[256];
     
     
     for(int i = 0; i < 13; i++) for(int j = 0; j < 36; j++) for(int k = 0; k < 2; k++)
             {
+        
                 if(i > 10 && j % 2 == 0) continue;
                 sprintf(ht, "digi_+%d_%d_%d", i + 29, j * 2 + 1, k + 1);
                 PhDigi[i][j][k] = passed.make<TH1F>(ht, ht, 10, -0.5, 9.5);
@@ -128,13 +125,13 @@ HCALDigis::HCALDigis(const edm::ParameterSet& iConfig)
                 
                 
                 sprintf(ht, "digi_+%d_%d_%d", i + 29, j * 2 + 1, k + 1);
-                PnehDigi[i][j][k] = passed.make<TH1F>(ht, ht, 10, -0.5, 9.5);
+                PnehDigi[i][j][k] = notep.make<TH1F>(ht, ht, 10, -0.5, 9.5);
                 sprintf(ht, "digi_-%d_%d_%d", i + 29, j * 2 + 1, k + 1);
-                PnehDigi[i + 13][j][k] = passed.make<TH1F>(ht, ht, 10, -0.5, 9.5);
+                PnehDigi[i + 13][j][k] = notep.make<TH1F>(ht, ht, 10, -0.5, 9.5);
                 sprintf(ht, "adc_+%d_%d_%d", i + 29, j * 2 + 1, k + 1);
-                Pnehadc[i][j][k] = passed.make<TH1F>(ht, ht, 100, -0.5, 99.5);
+                Pnehadc[i][j][k] = notep.make<TH1F>(ht, ht, 100, -0.5, 99.5);
                 sprintf(ht, "adc_-%d_%d_%d", i + 29, j * 2 + 1, k + 1);
-                Pnehadc[i + 13][j][k] = passed.make<TH1F>(ht, ht, 100, -0.5, 99.5);
+                Pnehadc[i + 13][j][k] = notep.make<TH1F>(ht, ht, 100, -0.5, 99.5);
 
                  
             }
@@ -218,7 +215,7 @@ HCALDigis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
         if(gparts.find(make_pair(frame.id().ieta(),frame.id().iphi()))!=gparts.end())
         //if(true)
         {
-        for(int isample = 0; isample < frame.size(); ++isample)//ask joe about this?????????????????????
+        for(int isample = 0; isample < frame.size(); ++isample)//time in particulare. 5 times
         {
             int adc = frame[isample].adc();
             PhAvgDigi->SetBinContent(isample + 1, PhAvgDigi->GetBinContent(isample + 1) + adc);
@@ -231,7 +228,7 @@ HCALDigis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
         if(gparts.find(make_pair(frame.id().ieta(),frame.id().iphi()))==gparts.end())
         {
         for(int isample = 0; isample < frame.size(); ++isample)//ask joe about this?????????????????????
-        {   cout<<"we getting here?"<<endl;
+        {  
             int adc = frame[isample].adc();
             PnehAvgDigi->SetBinContent(isample + 1, PnehAvgDigi->GetBinContent(isample + 1) + adc);
             PnehAvgadc->Fill(adc);
@@ -325,10 +322,7 @@ using namespace std;
     
     if(2.853>angle) tower = 0;
     else if (angle<=2.964) tower=29;
-    else if (angle<=3.139) tower=30;changed from 0 to 10
-
-Warning in <TCanvas::ResizePad>: Inf/NaN propagated to the pad. Check drawn objects.
-Warning in <TCanvas::ResizePad>: Canvas_1 height cha
+    else if (angle<=3.139) tower=30;
     else if (angle<=3.314) tower=31;
     else if (angle<=3.489) tower=32;
     else if (angle<=3.664) tower=33;
