@@ -29,7 +29,7 @@ void combinhistogram()
     TFile* theFile = new TFile("digis.root");
     if(!theFile) 
     {
-        cout<<"well it isn't reading the file bro"<<endl;
+        cout<<"well it isn't reading the file bro"<<endl;    
         return;
     }
     std::string ele = "demo/pass/avgAdc";
