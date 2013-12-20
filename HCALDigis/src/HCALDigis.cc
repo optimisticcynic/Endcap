@@ -77,10 +77,10 @@ private:
     // ----------member data ---------------------------
     TFile* tfile;
     std::string fname;
-    TH1 *PhAvgDigi, *PhAvgadc, *PhDigi[26][36][2], *Phadc[26][36][2]; //So for now this is histograms that do have eta with test range
-    TH1 *FhAvgDigi, *FhAvgadc, *FhDigi[26][36][2], *Fhadc[26][36][2]; //these graph data that does not pass the eta test
-    TH1 *PnehAvgDigi, *PnehAvgadc, *PnehDigi[26][36][2], *Pnehadc[26][36][2]; //So this is particles that pass the tests but arn't electrons
-    TH1 *FnehAvgDigi, *FnehAvgadc, *FnehDigi[26][36][2], *Fnehadc[26][36][2]; //these graph data that fail but are not electrons
+    TH1 *PhAvglinadc, *PhAvgDigi, *PhAvgadc, *PhDigi[26][36][2], *Phadc[26][36][2]; //So for now this is histograms that do have eta with test range
+    
+    TH1 *PnehAvglinadc, *PnehAvgDigi, *PnehAvgadc, *PnehDigi[26][36][2], *Pnehadc[26][36][2]; //So this is particles that pass the tests but arn't electrons
+   
     bool printDigi;
 };
 
@@ -109,6 +109,10 @@ HCALDigis::HCALDigis(const edm::ParameterSet& iConfig)
     PhAvgadc = passed.make<TH1F>("avgAdc", "avgAdc", 100, -0.5, 99.5);
     PnehAvgDigi = notep.make<TH1F>("avgDigi", "avgDigi", 10, -0.5, 9.5);
     PnehAvgadc = notep.make<TH1F>("avgAdc", "avgAdc", 100, -0.5, 99.5);
+    
+    
+    PhAvglinadc = passed.make<TH1F>("avglinAdc", "avglinAdc", 100, -0.5, 99.5);
+    PnehAvglinadc = notep.make<TH1F>("avglinAdc", "avglinAdc", 100, -0.5, 99.5);
     char ht[256];
 
 
@@ -223,32 +227,36 @@ HCALDigis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
         //fill digi histograms
         if(gparts.find(make_pair(frame.id().ieta(), frame.id().iphi())) != gparts.end())
         //if(true)
-        {
+        {double max=0;//should be max charge deposited
             //cout << "so electron id has ieta=" << frame.id().ieta() << "  and a iphi of =" << frame.id().iphi() << endl;
             for(int isample = 0; isample < frame.size(); ++isample)//time in particulare. 5 times
             {
                 //ADC
                 int adc = frame[isample].adc();
+                if(frame[isample].nominal_fC()>max) max =frame[isample].nominal_fC();
                 PhAvgDigi->SetBinContent(isample + 1, PhAvgDigi->GetBinContent(isample + 1) + adc);
                 PhAvgadc->Fill(adc);
                 PhDigi[ieta][iphi][depth]->SetBinContent(isample + 1, PhDigi[ieta][iphi][depth]->GetBinContent(isample + 1) + adc);
                 Phadc[ieta][iphi][depth]->Fill(adc);
             }
+            PhAvglinadc->Fill(max);
         }
         //so this following piece should be things that are not electrons that are passing at this moment. since right now I am not doing any cuts it is obviously a graph of all non electrons
         //if(gparts.find(make_pair(frame.id().ieta(), frame.id().iphi())) == gparts.end())
         else
-        {
-            for(int isample = 0; isample < frame.size(); ++isample)//ask joe about this?????????????????????
+        {double max=0;
+            for(int isample = 0; isample < frame.size(); ++isample)
             {
 
                 //linearadc? maybe...
                 int adc = frame[isample].adc();
+                if(frame[isample].nominal_fC()>max) max =frame[isample].nominal_fC();
                 PnehAvgDigi->SetBinContent(isample + 1, PnehAvgDigi->GetBinContent(isample + 1) + adc);
                 PnehAvgadc->Fill(adc);
                 PnehDigi[ieta][iphi][depth]->SetBinContent(isample + 1, PnehDigi[ieta][iphi][depth]->GetBinContent(isample + 1) + adc);
                 Pnehadc[ieta][iphi][depth]->Fill(adc);
             }
+        PnehAvglinadc->Fill(max);
         }
     }
 }
@@ -290,6 +298,8 @@ HCALDigis::endJob()
                     PnehDigi[i + 13][j][k]->Scale(1 / PhDigi[i + 13][j][k]->GetEntries());
                 }
             }
+    
+    
 }
 
 // ------------ method called when starting to processes a run  ------------
@@ -356,3 +366,5 @@ int HCALDigis::etatoieta(double angle)
 
     return tower;
 }
+
+
