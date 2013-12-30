@@ -78,9 +78,9 @@ private:
     // ----------member data ---------------------------
     TFile* tfile;
     std::string fname;
-    TH1 *PhAvglinadc, *PhAvgDigi, *PhAvgadc, *PhDigi[26][36][2], *Phadc[26][36][2]; //So for now this is histograms that do have eta with test range
+    TH1 *PhAvglinadc, *PhAvgDigi, *PhAvgadc, *PhDigi[26][36][2], *Phadc[26][36][2], * PLovSlinadc; //So for now this is histograms that do have eta with test range
 
-    TH1 *PnehAvglinadc, *PnehAvgDigi, *PnehAvgadc, *PnehDigi[26][36][2], *Pnehadc[26][36][2]; //So this is particles that pass the tests but arn't electrons
+    TH1 *PnehAvglinadc, *PnehAvgDigi, *PnehAvgadc, *PnehDigi[26][36][2], *Pnehadc[26][36][2], *PneLovSlinadc; //So this is particles that pass the tests but arn't electrons
 
     TH2 *Psvrsladc, *Plladcvrgen; // psvrsladc is the short vrs long adc and plladcvrsgen is simply long linadc to generated energy with
     //the p stands for electrons
@@ -150,6 +150,8 @@ HCALDigis::HCALDigis(const edm::ParameterSet& iConfig)
 
     PhAvglinadc = passed.make<TH1F>("avglinAdc", "avglinAdc", 121, orginal);
     PnehAvglinadc = notep.make<TH1F>("avglinAdc", "avglinAdc", 121, orginal);
+    PLovSlinadc = passed.make<TH1F>("Long_over_short", "long over short linear adc", 200, 0, 10);
+    PneLovSlinadc = notep.make<TH1F>("Long over short", "long over short linear adc", 200, 0, 10);
 
     Psvrsladc = passed.make<TH2F>("short_fiber_vrs_long_adc", "short fiber vrs long; long fiber adc; short fiber adc", 150, -0.5, 150.5, 150, -0.5, 150.5);
     Pnesvrsladc = notep.make<TH2F>("short_fiber_vrs_long_adc", "short fiber vrs long; long fiber adc; short fiber adc", 150, -0.5, 150.5, 150, -0.5, 150.5);
@@ -298,7 +300,9 @@ HCALDigis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
         int iphi = frame.id().iphi();
         int depth = frame.id().depth();
         int adc1M = 0; // max adc for long
-        int adc2M = 0; //so this is the max adc for short 
+        int adc2M = 0;
+        float ladc1M = 0;
+        float ladc2M = 0; //so this is the max adc for short 
 
         //so change this up one value to go from long to short
         HcalDetId bob(frame.id().subdet(), ieta, iphi, 2);
@@ -314,6 +318,10 @@ HCALDigis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
             if(adc2M < (*theit)[isample].adc()) //so I simply turned used a * to make it not a pointer 
             { //probably overcomplicated it ask joe about it
                 adc2M = (*theit)[isample].adc();
+            }
+            if(ladc2M < (*theit)[isample].nominal_fC())
+            {
+                ladc2M = (*theit)[isample].nominal_fC();
             }
 
         }
@@ -360,14 +368,21 @@ HCALDigis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
                 {
                     adc1M = frame[isample].adc();
                 }
+                if(ladc1M <  frame[isample].nominal_fC())
+                {
+                    ladc1M =  frame[isample].nominal_fC();
+                }
             }
-            PhAvgadc->Fill(adc);
-
+            if(frame.size() > 0)
+            {
+                PhAvgadc->Fill(adc);
+            }
             if(depth == 0)//so this should hopefully just fill it with the max adc and be done...
             {
-
+                
                 Plladcvrgen->Fill(genE[ieta][iphi], max);
                 Psvrsladc->Fill(adc1M, adc2M);
+                PLovSlinadc->Fill((ladc1M / ladc2M));
 
             }
             PhAvglinadc->Fill(max);
@@ -376,7 +391,7 @@ HCALDigis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
         else
         {
 
-
+            int adc = 0;
             double max = 0;
 
             for(int isample = 0; isample < frame.size(); ++isample)
@@ -401,6 +416,10 @@ HCALDigis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
                 {
                     adc1M = frame[isample].adc();
                 }
+                if(ladc1M < (float) frame[isample].nominal_fC())
+                {
+                    ladc1M = (float) frame[isample].nominal_fC();
+                }
 
 
             }
@@ -409,9 +428,13 @@ HCALDigis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 
                 Pnelladcvrgen->Fill(genE[ieta][iphi], max);
                 Pnesvrsladc->Fill(adc1M, adc2M);
+                PneLovSlinadc->Fill(ladc1M / ladc2M);
 
             }
-            PnehAvgadc->Fill(adc);
+            if(frame.size() > 0)
+            {
+                PnehAvgadc->Fill(adc);
+            }
             PnehAvglinadc->Fill(max);
         }
     }
