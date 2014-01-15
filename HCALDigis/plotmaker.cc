@@ -21,7 +21,7 @@
 void combinhistogram()
 {//Carful here, this is copied from another type of code, make sure it is pruined properly
 
-    //since the electron and none electron is in a differnt c directory this is needed to grab the data
+    //since the electron and non electron is in a differnt c directory this is needed to grab the data
      
     
     std::string type = ".pdf";
@@ -51,7 +51,7 @@ void combinhistogram()
     c1->SetFillColor(10);
     c1->SetFillColor(10);
     c1->cd();
-
+    cout<<"crashed?";
     float max1 = eAdc->GetMaximum();
     float max2 = neAdc->GetMaximum();
 
