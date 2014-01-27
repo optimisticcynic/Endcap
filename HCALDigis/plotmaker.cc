@@ -19,15 +19,65 @@
 
 #include <cmath> 
 
-struct effandbsurv
+struct effandbsurv //so this is used so we could pass out of the function effandback the background survival, and the efficency.
 
 {
     double eff;
     double bsurv;
 };
 
+effandbsurv effandback(double slope, double yintercept, double signal, double background, TH2F* want, TH2F* dontwant)// this gives us the background and the efficency based on slope and stuff. 
+{
+
+    TF1 f1("myfunc", "(x*[0])-[1]", 0, 140);
+    f1.SetParameter(0, slope);
+    f1.SetParameter(1, yintercept);
+
+    int cut[140][140]; //so if this vaulue is one it means we cut it out first long, second short
+    for(int i = 0; i < 140; i++)
+    {
+        for(int j = 0; j < 140; j++)
+        {
+            cut[i][j] = 0;
+        }
+    }
+    //so now all terms will be zero so to do cuts we do cuts, yes it isn't the most effiecient way, just doing it this way for clearity for now.
+    for(int i = 0; i < 140; i++)
+    {
+        for(int j = 0; j < 10; j++)
+        {
+            cut[i][j] = 1;
+            cut[j][i] = 1;
+
+        }
+    }
 
 
+    for(int i = 0; i < 140; i++)
+    {
+        for(int j = 0; j < 140; j++)
+        {
+            if(j > f1((double) i))cut[i][j] = 1;
+
+        }
+    }
+
+
+    for(int i = 0; i < 140; i++)
+    {
+        for(int j = 0; j < 140; j++)
+        {
+
+            if(cut[i][j] == 1)dontwant->SetBinContent(i, j, 0);
+            if(cut[i][j] == 1)want->SetBinContent(i, j, 0);
+        }
+    }
+
+    effandbsurv stuff;
+    stuff.eff = (want->Integral()) / signal;
+    stuff.bsurv = (dontwant->Integral()) / background;
+    return stuff;
+}
 
 //This will hopefully grab the data and make a combined graph of the electron to other junk
 
@@ -75,6 +125,7 @@ void combinhistogram()
 
     gStyle->SetOptStat("eoumi");
     gStyle->SetOptStat("");
+    
     c1->SetLogy();
 
 
@@ -215,6 +266,7 @@ void combinhistogram()
     Plladcvrgen = (TH2F*) theFile->Get(ele.c_str());
 
     //gStyle->SetPalette(1);
+    gPad->SetLogz();
     cout << "get here? 0" << endl;
     Plladcvrgen->Draw("COLZ");
 
@@ -238,7 +290,7 @@ void combinhistogram()
     Pnelladcvrgen = (TH2F*) theFile->Get(background.c_str());
 
     //gStyle->SetPalette(1);
-
+    gPad->SetLogz();
     Pnelladcvrgen->Draw("COLZ");
 
 
@@ -261,11 +313,12 @@ void combinhistogram()
     Eshvl = (TH2F*) theFile->Get(ele.c_str());
     double sigsrv = Eshvl->Integral(); //////////////////////////////////////////////////////////////////////////////delete these //
     //gStyle->SetPalette(1);
-
+gPad->SetLogz();
     Eshvl->Draw("COLZ");
 
 
     c6->Update();
+    gPad->SetLogz();
     plotname = "e_short_fiber_vrs_long_adc" + type;
     c6->Print(plotname.c_str());
     delete c6;
@@ -284,6 +337,7 @@ void combinhistogram()
     nEshvl = (TH2F*) theFile->Get(background.c_str());
     double bgsrv = nEshvl->Integral();
     //gStyle->SetPalette(1);
+    gPad->SetLogz();
 
     nEshvl->Draw("COLZ");
 
@@ -304,10 +358,10 @@ void combinhistogram()
     double slope = 0;
     double yax = 0;
 
-    double bsm = bgsrv;
-    double ssm = sigsrv;
-    double Mss = sigsrv;
-    double Msm = bgsrv;
+    double bsm = 1; //bgsrv;
+    double ssm = 1; //sigsrv;
+    //double Mss = sigsrv;
+    //double Msm = bgsrv;
 
     ele = "demo/pass/short_fiber_vrs_long_adc";
     //backround = "demo/nepass/linadc_to_gen";
@@ -318,13 +372,17 @@ void combinhistogram()
 
 
     //gStyle->SetPalette(1);
+    gPad->SetLogz();
     background = "demo/nepass/short_fiber_vrs_long_adc";
     //backround = "demo/nepass/linadc_to_gen";
     TH2F * DnEshvl;
     //TH2D * noelavrgen;
 
     DnEshvl = (TH2F*) theFile->Get(background.c_str());
-
+    double g;
+    cout << "min value you want for efficency" << endl;
+    cin >> g;
+    int 
 
     for(int k = 80; k < 150; k++)
     {
@@ -334,64 +392,36 @@ void combinhistogram()
 
             // double slop=.045*k;
             //double b=3*p; 
-            TF1 f1("myfunc", "(x*[0])-[1]", 0, 140);
-            f1.SetParameter(0, .045 * double(k));
-            f1.SetParameter(1, 3 * double(p));
-
-            int cut[140][140]; //so if this vaulue is one it means we cut it out first long, second short
-            for(int i = 0; i < 140; i++)
-            {
-                for(int j = 0; j < 140; j++)
-                {
-                    cut[i][j] = 0;
-                }
-            }
-            //so now all terms will be zero so to do cuts we do cuts, yes it isn't the most effiecient way, just doing it this way for clearity for now.
-            for(int i = 0; i < 140; i++)
-            {
-                for(int j = 0; j < 10; j++)
-                {
-                    cut[i][j] = 1;
-                    cut[j][i] = 1;
-
-                }
-            }
-
-            for(int i = 0; i < 140; i++)
-            {
-                //cout<<"hey dumbass this sould be a number that is bigger "<<f1((double)i)<<endl;
-                for(int j = 0; j < 140; j++)
-                {
-                    if(j > f1((double) i)) cut[i][j] = 1;
-
-                }
-            }
-
             TH2F *CEshvl = (TH2F*) DEshvl->Clone("CEshvl2");
             TH2F *CnEshvl = (TH2F*) DnEshvl->Clone("CnEshvl2");
+            effandbsurv bestrat;
+            bestrat = effandback((.045 * k), 3 * p, sigsrv, bgsrv, CEshvl, CnEshvl);
 
 
-
-            for(int i = 0; i < 140; i++)
-            {
-                for(int j = 0; j < 140; j++)
-                {
-
-                    if(cut[i][j] == 1)CnEshvl->SetBinContent(i, j, 0);
-                    if(cut[i][j] == 1)CEshvl->SetBinContent(i, j, 0);
-                }
-            }
-
-            Msm = CnEshvl->Integral();
-            Mss = CEshvl->Integral();
-
-            //cout << "Mss/(Msm+1): " << Mss/(Msm+1) << endl;
-
-            if(((Mss / (Msm + 1)) > (ssm / (bsm + 1)))&&(Mss / sigsrv) > .9)
+            if(((bestrat.eff / (bestrat.bsurv + .0000000000000001)) > (ssm / (bsm + .0000000000000001)))&&(bestrat.eff) > g)
             {
                 cout << "hey we get in here? " << endl << endl << endl;
-                ssm = Mss;
-                bsm = Msm;
+                ssm = bestrat.eff;
+                bsm = bestrat.bsurv;
+                slope = (double) k * .045;
+                yax = 3 * p;
+
+            }
+            delete CnEshvl;
+            delete CEshvl;
+            
+            
+            TH2F *CEshvl = (TH2F*) DEshvl->Clone("CEshvl2");
+            TH2F *CnEshvl = (TH2F*) DnEshvl->Clone("CnEshvl2");
+            effandbsurv bestrat;
+            bestrat = effandback((.045 * k), 3 * p, sigsrv, bgsrv, CEshvl, CnEshvl);
+
+
+            if(((bestrat.eff / (bestrat.bsurv + .0000000000000001)) > (ssm / (bsm + .0000000000000001)))&&(bestrat.eff) > g)
+            {
+                cout << "hey we get in here? " << endl << endl << endl;
+                ssm = bestrat.eff;
+                bsm = bestrat.bsurv;
                 slope = (double) k * .045;
                 yax = 3 * p;
 
@@ -400,7 +430,8 @@ void combinhistogram()
             delete CEshvl;
         }
     }
-
+    cout << endl << "this is a test to see how histograms work, if this doesn't work the graphs won't be cut" << endl;
+    /*
     TF1 f1("f1", "(x*[0])-[1]", -1, 140); //final function
     f1.SetParameter(0, slope);
     f1.SetParameter(1, yax);
@@ -432,7 +463,7 @@ void combinhistogram()
 
         }
     }
-
+     */
 
 
     ele = "demo/pass/short_fiber_vrs_long_adc";
@@ -446,7 +477,12 @@ void combinhistogram()
     TH2F * CnEshvl;
     CnEshvl = (TH2F*) theFile->Get(background.c_str());
 
+    effandbsurv bestrat;
+    bestrat = effandback((slope), yax, sigsrv, bgsrv, CEshvl, CnEshvl);
+
+
     //gStyle->SetPalette(1);
+    /*
     for(int i = 0; i < 140; i++)
     {
         for(int j = 0; j < 140; j++)
@@ -456,6 +492,7 @@ void combinhistogram()
             if(cut[i][j] == 1)CEshvl->SetBinContent(i, j, 0);
         }
     }
+     */
     c8->cd();
     CEshvl->Draw("COLZ");
 
@@ -477,56 +514,5 @@ void combinhistogram()
 
 
 
-
-}
-
-effandbsurv NOTSUREABOUTmacro(double slope, double yintercept, TH1D* want, TH1D* dontwant)
-{
-
-    TF1 f1("myfunc", "(x*[0])-[1]", 0, 140);
-    f1.SetParameter(0, slope;
-            f1.SetParameter(1, yintercept;
-
-            int cut[140][140]; //so if this vaulue is one it means we cut it out first long, second short
-    for(int i = 0; i < 140; i++)
-    {
-        for(int j = 0; j < 140; j++)
-        {
-            cut[i][j] = 0;
-        }
-    }
-    //so now all terms will be zero so to do cuts we do cuts, yes it isn't the most effiecient way, just doing it this way for clearity for now.
-    for(int i = 0; i < 140; i++)
-    {
-        for(int j = 0; j < 10; j++)
-        {
-            cut[i][j] = 1;
-                    cut[j][i] = 1;
-
-        }
-    }
-
-
-    for(int i = 0; i < 140; i++)
-    {
-        for(int j = 0; j < 140; j++)
-        {
-            if(j > f1((double) i))cut[i][j] = 1;
-
-            }
-    }
-
-
-    for(int i = 0; i < 140; i++)
-    {
-        for(int j = 0; j < 140; j++)
-        {
-
-            if(cut[i][j] == 1)dontwant->SetBinContent(i, j, 0);
-                if(cut[i][j] == 1)want->SetBinContent(i, j, 0);
-                }
-    }
-
-    effandbsurv
 
 }
